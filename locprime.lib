@@ -1,0 +1,186 @@
+///////////////////////////////////////////////////////////////////////////////
+version="version locprime.lib 4.2.0.0 Nov_2021 "; // $Id$
+category="Commutative Algebra";
+info="
+LIBRARY:  locprime.lib       Localization at a Prime Ideal
+
+AUTHORS:  Y. Ishihara     yishihara@rs.tus.ac.jp
+
+OVERVIEW:
+  A library for computing the localization at a prime ideal.
+
+REFERENCES:
+
+PROCEDURES:
+  locPrime(I,P);    a minimal primary decomposition of IK[X]_P\cap K[X]
+";
+
+LIB "elim.lib";
+LIB "dmodloc.lib";
+LIB "primdec.lib";
+
+proc locPrime (def I, def P)
+"USAGE:   locPrime(I,P); I,P ideal/module
+RETURN:   a minimal primary decomposition of IK[X]_P\cap K[X]
+NOTE:     The procedure computes primary components contained in P without producing unnecessary primary components. 
+SEE ALSO: primdec.lib
+EXAMPLE:  example locPrime; shows an example"
+{
+    int i;
+    int m = 1;
+    ideal pseudoComp;
+    intvec U;
+    ideal q;
+    ideal QQ = 1;
+    ideal PP = 1;
+    ideal IP;
+    ideal IIP;
+    list IP_sat;
+    ideal IPm;
+    list lPrimary;
+    if (!isSubideal(I,P)){return(lPrimary);}
+    IIP = sat(I,sat(I,P)[1])[1];
+    if(!attrib(P,"isSB")){print("compute std");P = std(P);}
+    U = indepSet(P);
+    if (!(isSubideal(ideal(1),IIP)))
+    {
+        return(misLocal(IIP,U));
+    }
+    if (sum(U) != 0){I = misLocal(I,U)};
+    ideal Rest = I;
+    ideal isoChar;
+    list isoPrimes;
+    ideal localIdeal = I;
+    ideal localIdeal_loc;
+    list l;
+    list lSat;
+    int isIsolated = 1;
+    while(1)
+    {
+        isoPrimes = minAssChar(Rest);
+        for (i = 1; i <= size(isoPrimes); i++)
+        {
+            isoChar = isoPrimes[i];
+            if(isSubideal(isoChar,P))
+            {
+                if(isIsolated)
+                {
+                    lSat = sat(Rest,isoChar);
+                    IP = lSat[1];
+                    pseudoComp = sat(Rest,IP)[1];
+                    U = indepSet(pseudoComp);
+                    q = misLocal(pseudoComp,U);
+                }
+                else
+                {
+                    U = indepSet(isoChar);
+                    localIdeal_loc = misLocal(localIdeal,U); 
+                    IP_sat = sat(localIdeal_loc,isoChar);
+                    IP = IP_sat[1];
+                    m = IP_sat[2];
+                    while(1)
+                    {
+                        IPm = I + idealPower(isoChar,m);
+                        if(isSubideal(intersect(IP,IPm),localIdeal_loc))
+                        {
+                            break;
+                        }
+                        m++;
+                    }
+                    q = misLocal(IPm,U);
+                }
+                lPrimary = lPrimary + list(q);
+                QQ = intersect(QQ,q);
+            }
+            else
+            {
+                Rest = sat(Rest,isoChar)[1];
+                localIdeal = sat(localIdeal,isoChar)[1];
+            }
+        }
+        isIsolated = 0;
+        Rest = quotient(localIdeal,QQ);
+        if(isSubideal(ideal(1),Rest)){break;}
+    }
+    return(lPrimary);
+}
+example
+{
+    "EXAMPLE:";
+    echo=2;
+    ring r=0,(x,y),dp;
+    ideal i=x2,xy;
+    ideal p=x;
+    locPrime(i,p);
+}
+
+/* compute the localization of I by a maximal independent set U  */
+static proc misLocal (def I, def U)
+{
+    int j = 1;
+    int k;
+    list Vars;
+    Vars[1] = list();
+    Vars[2] = list();
+    intvec v1;
+    intvec v2;
+    for (k = 1; k <= size(U); k++)
+    {
+        if (U[k] == 1){
+            j++;
+            Vars[1] = Vars[1] + list(var(k));
+            if (v1 == 0){v1 = 1;}else{v1 = v1,1;}
+        }
+        else
+        {
+            Vars[2] = Vars[2] + list(var(k));
+            if (v2 == 0){v2 = 1;}else{v2 = v2,1;}
+        }
+    }
+    def br = basering;
+    list lbr = ringlist(br);
+    lbr[2] = Vars[1] + Vars[2];
+    lbr[3]  = list(list("dp",v1),list("dp",v2),list("C",0));
+    def nr = ring(lbr);
+    setring(nr);
+    ideal In = imap(br,I);
+    In = std(In);
+    intvec v = 1..size(v1);
+    def R = vars2pars(v);
+    setring R;
+    ideal Iq = imap(nr,In);
+    number h = 1;
+    for (k = 1; k <= size(Iq); k++)
+    {
+        h = h * leadcoef(Iq[k]);
+    }
+    setring br;
+    ideal H = imap(R,h);
+    ideal G = sat(I,H)[1];
+    return(G);
+}
+
+
+/* check if I is a subset of J or not */
+static proc isSubideal (def I, def J)
+{
+    if(!attrib(J,"isSB")){print("compute std");J = std(J);}
+    int i;
+    for (i = ncols(I); i > 0; i--)
+    {
+        if (reduce(I[i], J, 1) != 0) {return(0);}
+    }
+    return(1);
+}
+
+/* compute [f1^m,...,fr^m] for an ideal I=[f1,...,fr] */
+static proc idealPower (def I, def m)
+{
+    ideal J = 0;
+    int i;
+    for (i = 1; i <= ncols(I); i++)
+    {
+        J = J + I[i]^m;
+    }
+    return(J);
+}
