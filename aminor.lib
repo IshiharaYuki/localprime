@@ -1,0 +1,103 @@
+///////////////////////////////////////////////////////////////////////////////
+version="version aminor.lib 4.2.0.0 Apr_2022 "; // $Id$
+category="Commutative Algebra";
+info="
+LIBRARY:  aminor.lib       adjacent-minor ideal
+
+AUTHORS:  Y. Ishihara     yishihara@rs.tus.ac.jp
+
+OVERVIEW:
+  A library for computing adjacent-minor ideals.
+
+REFERENCES: Sturmfels, B.: Solving systems of polynomial equations. In: CBMS Regional Conference Series. American Mathematical Society, no. 97 (2002) 
+
+PROCEDURES:
+  aminor_ring(K,N,NN); the ring Q[x(ij):1<=i<=N,1<=j<=NN]
+  aminor(K,N,NN); a basis of adjacent-minor ideal A_{(K,N,NN)}
+";
+
+
+proc aminor_ring(K,N,NN)
+"USAGE:   aminor_ring(K,N,NN); K,N,NN: positive integers
+RETURN:   the ring Q[x(ij):1<=i<=N,1<=j<=NN]
+NOTE:      
+SEE ALSO: 
+EXAMPLE:  example aminor_ring; shows an example"
+{
+  ring r = 0,x,dp;
+	list V;
+  int I;
+  int J;
+  list S;
+	for ( I = 1; I <= N; I++ )
+  {
+		for ( J = 1; J <= NN; J++ )
+    {
+			S = "x(" + string(I) + string(J) + ")";
+			V = V + S;
+		}
+  }
+  list L = ringlist(r);
+  L[2] = V;
+  ring r2 = ring(L);
+	return(r2);
+}
+example
+{
+    "EXAMPLE:";
+    echo = 2;
+    ring r = aminor_ring(2,3,4);
+    print(basering);
+}
+
+proc aminor(K,N,NN)
+"USAGE:   aminor(K,N,NN); K,N,NN: positive integers
+RETURN:   a basis of adjacent-minor ideal A_{(K,N,NN)}
+NOTE:      
+SEE ALSO: 
+EXAMPLE:  example aminor; shows an example"
+{
+  matrix A[N][NN] = 0;
+  int c = 1;
+  int I;
+  int J;
+	for ( I = 1; I <= N; I++ )
+  {
+		for ( J = 1; J <= NN; J++ )
+    {
+      A[I,J] = var(c);
+      c++;
+		}
+  }
+	matrix B[K][K] = 0;
+	list R;
+  int X;
+  int Y;
+  list l;
+	for ( I = 1; I <= N-K+1; I++ )
+  {
+		for ( J = 1; J <= NN-K+1; J++ )
+    {
+			for ( X = 1; X <= K; X++ )
+      {
+				for ( Y = 1; Y <= K; Y++ )
+        {
+					B[X,Y] = A[I+X-1,J+Y-1];
+        }
+      }
+      l = det(B);
+			R = R + l;
+		}
+  }
+  ideal i = R[1..size(R)];
+	return(i);
+}
+example
+{
+    "EXAMPLE:";
+    echo = 2;
+    ring r = aminor_ring(2,3,4);
+    ideal i = aminor(2,3,4);
+    print(i);
+}
+
