@@ -80,7 +80,7 @@ EXAMPLE:  example locPrime; shows an example"
                     m = IP_sat[2];
                     while(1)
                     {
-                        IPm = I + idealPower(isoChar,m);
+                        IPm = localIdeal_loc + idealPower(isoChar,m);
                         if(isSubideal(intersect(IP,IPm),localIdeal_loc))
                         {
                             break;
@@ -94,7 +94,6 @@ EXAMPLE:  example locPrime; shows an example"
             }
             else
             {
-                Rest = sat(Rest,isoChar)[1];
                 localIdeal = sat(localIdeal,isoChar)[1];
             }
         }
